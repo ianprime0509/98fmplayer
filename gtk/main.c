@@ -24,7 +24,7 @@
 #include "common/fmplayer_fontrom.h"
 #include "fft/fft.h"
 
-#include "soundout.h"
+#include "soundout/soundout.h"
 
 #include "fmplayer.xpm"
 #include "fmplayer32.xpm"

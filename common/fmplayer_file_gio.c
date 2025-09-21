@@ -3,6 +3,7 @@
 #include <glib.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 
 static void *fileread(GFile *f, size_t maxsize, size_t *filesize, enum fmplayer_file_error *error) {
   GFileInfo *finfo = 0;
