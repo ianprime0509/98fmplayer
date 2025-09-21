@@ -41,7 +41,6 @@ endif
 
 if ENABLE_NEON
 LIBOPNA_SRC+=../libopna/opnassg-sinc-neon.s
-FMDSP_SRC+=../fmdsp/fmdsp-vramlookup-neon.s
 98fmplayer_CCASFLAGS=-march=armv8-a -mfpu=crypto-neon-fp-armv8
 endif
 
