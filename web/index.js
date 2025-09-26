@@ -69,10 +69,10 @@ const wasm = await WebAssembly.instantiateStreaming(fetch("main.wasm"), {
 
 pacc.initWasm(wasm.exports.memory);
 
-if (wasm.exports.fmplayer_web_init() !== 1) throw new Error("init failed");
+if (wasm.exports.init() !== 1) throw new Error("init failed");
 
 function render() {
-  wasm.exports.fmplayer_web_render();
+  wasm.exports.render();
   requestAnimationFrame(render);
 }
 
