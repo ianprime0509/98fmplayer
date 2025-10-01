@@ -17,6 +17,7 @@ pub fn build(b: *std.Build) void {
     mod.addCSourceFiles(.{
         .root = b.path(".."),
         .files = &.{
+            "common/fmplayer_work_opna.c",
             "libopna/opnaadpcm.c",
             "libopna/opnadrum.c",
             "libopna/opnafm.c",
