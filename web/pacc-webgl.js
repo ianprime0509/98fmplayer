@@ -90,11 +90,11 @@ export function imports(gl) {
   let color = 0;
 
   return {
-    initWasm: (wasmMemory) => {
+    initWasm(wasmMemory) {
       mem = wasmMemory;
     },
 
-    genBuf: () => {
+    genBuf() {
       let pb = bufs.findIndex((buf) => !buf);
       if (pb === -1) {
         pb = bufs.length;
@@ -104,11 +104,11 @@ export function imports(gl) {
       return pb;
     },
 
-    bufDelete: (pb) => {
+    bufDelete(pb) {
       bufs[pb] = null;
     },
 
-    bufUpdate: (pb, bufPtr, len, mode) => {
+    bufUpdate(pb, bufPtr, len, mode) {
       gl.bindBuffer(gl.ARRAY_BUFFER, bufs[pb]);
       const data = new Float32Array(len);
       const memView = new DataView(mem.buffer);
@@ -118,7 +118,7 @@ export function imports(gl) {
       gl.bufferData(gl.ARRAY_BUFFER, data, mode === 0 ? gl.STATIC_DRAW : gl.STREAM_DRAW);
     },
 
-    palette: (rgbPtr, colors) => {
+    palette(rgbPtr, colors) {
       const pal = new Uint8Array(256 * 3);
       pal.set(new Uint8Array(mem.buffer, rgbPtr, colors * 3));
 
@@ -135,15 +135,15 @@ export function imports(gl) {
       gl.clearColor(pal[0] / 255, pal[1] / 255, pal[2] / 255, 1);
     },
 
-    color: (pal) => {
+    color(pal) {
       color = pal;
     },
 
-    clear: () => {
+    clear() {
       gl.clear(gl.COLOR_BUFFER_BIT);
     },
 
-    draw: (pt, pb, n, mode) => {
+    draw(pt, pb, n, mode) {
       gl.useProgram(progs[mode]);
       switch (mode) {
       case 1:
@@ -160,7 +160,7 @@ export function imports(gl) {
       gl.drawArrays(gl.TRIANGLES, 0, n);
     },
 
-    genTex: (w, h) => {
+    genTex(w, h) {
       let pt = texs.findIndex((tex) => !tex);
       if (pt === -1) {
         pt = texs.length;
@@ -180,11 +180,11 @@ export function imports(gl) {
       return pt;
     },
 
-    texDelete: (pt) => {
+    texDelete(pt) {
       texs[pt] = null;
     },
 
-    texUpdate: (pt, bufPtr, w, h) => {
+    texUpdate(pt, bufPtr, w, h) {
       gl.bindTexture(gl.TEXTURE_2D, texs[pt]);
       const buf = new Uint8Array(mem.buffer, bufPtr, w * h);
       gl.texImage2D(

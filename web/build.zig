@@ -58,6 +58,7 @@ pub fn build(b: *std.Build) void {
         "index.html",
         "index.js",
         "pacc-webgl.js",
+        "wasi.js",
     };
     for (static_files) |static_file| {
         b.getInstallStep().dependOn(&b.addInstallFileWithDir(b.path(static_file), .prefix, static_file).step);
