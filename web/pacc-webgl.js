@@ -64,34 +64,35 @@ void main(void) {
 const VAI_COORD = 0;
 
 /**
+ * @param {WebAssembly.Memory} memory
  * @param {WebGLRenderingContext} gl 
  */
-export function imports(gl) {
-  gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
-
-  const texPal = gl.createTexture();
-  gl.bindTexture(gl.TEXTURE_2D, texPal);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-
-  const progs = [
-    compileAndLink(gl, VERTEX_SHADER, FRAGMENT_SHADER_COPY),
-    compileAndLink(gl, VERTEX_SHADER, FRAGMENT_SHADER_COLOR),
-    compileAndLink(gl, VERTEX_SHADER, FRAGMENT_SHADER_COLOR_TRANS),
-  ];
-  const uniColor = gl.getUniformLocation(progs[1], "color");
-  const uniColorTrans = gl.getUniformLocation(progs[2], "color");
-  
-  gl.activeTexture(gl.TEXTURE1);
-
-  let mem;
+export function imports(memory, gl) {
+  let progs;
+  let uniColor;
+  let uniColorTrans;
   const bufs = [];
   const texs = [];
   let color = 0;
 
   return {
-    initWasm(wasmMemory) {
-      mem = wasmMemory;
+    init() {
+      gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+
+      const texPal = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, texPal);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+      progs = [
+        compileAndLink(gl, VERTEX_SHADER, FRAGMENT_SHADER_COPY),
+        compileAndLink(gl, VERTEX_SHADER, FRAGMENT_SHADER_COLOR),
+        compileAndLink(gl, VERTEX_SHADER, FRAGMENT_SHADER_COLOR_TRANS),
+      ];
+      uniColor = gl.getUniformLocation(progs[1], "color");
+      uniColorTrans = gl.getUniformLocation(progs[2], "color");
+      
+      gl.activeTexture(gl.TEXTURE1);
     },
 
     genBuf() {
@@ -111,7 +112,7 @@ export function imports(gl) {
     bufUpdate(pb, bufPtr, len, mode) {
       gl.bindBuffer(gl.ARRAY_BUFFER, bufs[pb]);
       const data = new Float32Array(len);
-      const memView = new DataView(mem.buffer);
+      const memView = new DataView(memory.buffer);
       for (let i = 0; i < len; i++) {
         data[i] = memView.getFloat32(bufPtr + 4 * i, true);
       }
@@ -120,7 +121,7 @@ export function imports(gl) {
 
     palette(rgbPtr, colors) {
       const pal = new Uint8Array(256 * 3);
-      pal.set(new Uint8Array(mem.buffer, rgbPtr, colors * 3));
+      pal.set(new Uint8Array(memory.buffer, rgbPtr, colors * 3));
 
       gl.activeTexture(gl.TEXTURE0);
       gl.texImage2D(
@@ -186,7 +187,7 @@ export function imports(gl) {
 
     texUpdate(pt, bufPtr, w, h) {
       gl.bindTexture(gl.TEXTURE_2D, texs[pt]);
-      const buf = new Uint8Array(mem.buffer, bufPtr, w * h);
+      const buf = new Uint8Array(memory.buffer, bufPtr, w * h);
       gl.texImage2D(
         gl.TEXTURE_2D,
         0, gl.LUMINANCE,

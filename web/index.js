@@ -4,16 +4,18 @@ import { imports as wasiImports } from "./wasi.js";
 const canvas = document.getElementById("fmdsp");
 const gl = canvas.getContext("webgl");
 
-const pacc = paccImports(gl);
-const wasi = wasiImports();
-
-const wasm = await WebAssembly.instantiateStreaming(fetch("main.wasm"), {
-  pacc,
-  wasi_snapshot_preview1: wasi,
-}).then((w) => w.instance);
-
-pacc.initWasm(wasm.exports.memory);
-wasi.initWasm(wasm.exports.memory);
+const source = await fetch("main.wasm").then((r) => r.arrayBuffer());
+const memory = new WebAssembly.Memory({
+  initial: 1 * 1024,
+  maximum: 1 * 1024,
+  shared: true,
+});
+const wasm = await WebAssembly.instantiate(source, {
+  env: { memory },
+  pacc: paccImports(memory, gl),
+  wasi_snapshot_preview1: wasiImports(memory),
+}).then((r) => r.instance);
+wasm.exports.__stack_pointer.value = 8 * 1024 * 1024;
 
 if (wasm.exports.init() !== 1) throw new Error("init failed");
 
@@ -27,24 +29,20 @@ requestAnimationFrame(render);
 const audioCtx = new AudioContext({
   sampleRate: 55467,
 });
-const scriptNode = audioCtx.createScriptProcessor(1024, 0, 2);
-scriptNode.addEventListener("audioprocess", (ev) => {
-  const samples = ev.outputBuffer.getChannelData(0).length;
-  wasm.exports.mix(samples);
-  const audio = new DataView(wasm.exports.memory.buffer, wasm.exports.getAudioBuf(), samples * 4);
-  for (let i = 0; i < samples; i++) {
-    ev.outputBuffer.getChannelData(0)[i] = audio.getInt16(4 * i, true) / 32767;
-    ev.outputBuffer.getChannelData(1)[i] = audio.getInt16(4 * i + 2, true) / 32767;
-  }
+await audioCtx.audioWorklet.addModule("audio.js");
+const audioNode = new AudioWorkletNode(audioCtx, "audio", {
+  numberOfInputs: 0,
+  numberOfOutputs: 1,
+  outputChannelCount: [2],
+  processorOptions: { source, memory },
 });
-scriptNode.connect(audioCtx.destination);
+audioNode.connect(audioCtx.destination);
 
 const fileInput = document.getElementById("file");
-fileInput.addEventListener("change", (ev) => {
+fileInput.addEventListener("change", () => {
   const reader = new FileReader();
   reader.onload = () => {
-    console.log(wasm.exports.getFileBuf());
-    const fileBuf = new Uint8Array(wasm.exports.memory.buffer, wasm.exports.getFileBuf(), 0xffff);
+    const fileBuf = new Uint8Array(memory.buffer, wasm.exports.getFileBuf(), 0xffff);
     fileBuf.set(new Uint8Array(reader.result));
     wasm.exports.loadFile(reader.result.byteLength);
     audioCtx.resume();

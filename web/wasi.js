@@ -1,13 +1,10 @@
 const ENOTSUP = 58;
 
-export function imports() {
-  let mem;
-
+/**
+ * @param {WebAssembly.Memory} memory 
+ */
+export function imports(memory) {
   return {
-    initWasm(wasmMemory) {
-      mem = wasmMemory;
-    },
-
     args_get() { return ENOTSUP; },
     args_sizes_get() { return ENOTSUP; },
     clock_res_get() { return ENOTSUP; },
@@ -37,12 +34,12 @@ export function imports() {
     fd_write(fd, iovs, iovsLen, nWritten) {
       // Temporary stub implementation that writes nothing
       // TODO: use of Uint32Array won't work correctly on big endian
-      const iovsData = new Uint32Array(wasm.exports.memory.buffer, iovs, iovsLen * 2);
+      const iovsData = new Uint32Array(memory.buffer, iovs, iovsLen * 2);
       let n = 0;
       for (let i = 0; i < iovsLen; i++) {
         n += iovsData[2 * i + 1];
       }
-      const retData = new Uint32Array(wasm.exports.memory.buffer, nWritten, 1);
+      const retData = new Uint32Array(memory.buffer, nWritten, 1);
       retData[0] = n;
       return 0;
     },

@@ -3,6 +3,19 @@ const std = @import("std");
 pub fn build(b: *std.Build) void {
     const target = b.resolveTargetQuery(.{
         .cpu_arch = .wasm32,
+        .cpu_model = .baseline,
+        .cpu_features_add = std.Target.wasm.featureSet(&.{
+            // See https://webassembly.org/features/ for support
+            .atomics,
+            .bulk_memory,
+            .extended_const,
+            .multivalue,
+            .mutable_globals,
+            .nontrapping_fptoint,
+            .reference_types,
+            .sign_ext,
+            .tail_call,
+        }),
         .os_tag = .wasi,
     });
     const optimize = b.standardOptimizeOption(.{});
@@ -12,6 +25,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
         .link_libc = true,
     });
+    mod.export_symbol_names = &.{"__stack_pointer"};
     mod.addIncludePath(b.path(".."));
     mod.addCMacro("LIBOPNA_ENABLE_LEVELDATA", "");
     mod.addCSourceFiles(.{
@@ -42,7 +56,8 @@ pub fn build(b: *std.Build) void {
             "-Werror",
             "-pedantic",
             "-Wno-unknown-attributes", // due to optimize attribute
-            "-std=c11",
+            "-std=c23",
+            "-fno-sanitize=shift",
         },
     });
 
@@ -52,11 +67,16 @@ pub fn build(b: *std.Build) void {
     });
     exe.entry = .disabled;
     exe.wasi_exec_model = .reactor;
-    exe.rdynamic = true;
+    exe.import_memory = true;
+    exe.initial_memory = 64 * 1024 * 1024;
+    exe.max_memory = 64 * 1024 * 1024;
+    exe.shared_memory = true;
+    exe.stack_size = 8 * 1024 * 1024;
 
     const static_files: []const []const u8 = &.{
         "index.html",
         "index.js",
+        "audio.js",
         "pacc-webgl.js",
         "wasi.js",
     };

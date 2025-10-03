@@ -7,6 +7,7 @@
 
 #define IMPORT(name) __attribute__((import_module("pacc"), import_name(name)))
 
+IMPORT("init") extern void pacc_js_init(void);
 IMPORT("genBuf") extern int pacc_js_gen_buf(void);
 IMPORT("bufDelete") extern void pacc_js_buf_delete(int pb);
 IMPORT("bufUpdate") extern void pacc_js_buf_update(int pb, const float *buf, int len, enum pacc_buf_mode mode);
@@ -280,6 +281,8 @@ static struct pacc_vtable pacc_webgl_vtable = {
 };
 
 struct pacc_ctx *pacc_init_webgl(int w, int h, struct pacc_vtable *vt) {
+  pacc_js_init();
+
   struct pacc_ctx *pc = malloc(sizeof(*pc));
   if (!pc) goto err;
   *pc = (struct pacc_ctx) {
