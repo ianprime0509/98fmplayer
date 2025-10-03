@@ -25,6 +25,7 @@ static struct {
 } g = {0};
 
 EXPORT("init") bool fmplayer_web_init(void) {
+  fft_init_table();
   fmplayer_init_work_opna(&g.work, &g.ppz8, &g.opna, &g.opna_timer, g.adpcm_ram);
 
   g.pc = pacc_init_webgl(PC98_W, PC98_H, &g.pacc);
@@ -44,6 +45,8 @@ EXPORT("getFileBuf") uint8_t *fmplayer_web_get_file_buf(void) {
 
 EXPORT("loadFile") bool fmplayer_web_load_file(size_t len) {
   // TODO: this is very bare bones
+  memset(g.adpcm_ram, 0, sizeof(g.adpcm_ram));
+  fmplayer_init_work_opna(&g.work, &g.ppz8, &g.opna, &g.opna_timer, g.adpcm_ram);
   if (!pmd_load(&g.fmfile.driver.pmd, g.fmfile_data, len)) goto err;
   pmd_init(&g.work, &g.fmfile.driver.pmd);
   g.work.pcmerror[0] = true;
