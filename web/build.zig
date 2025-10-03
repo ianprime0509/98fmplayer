@@ -27,6 +27,7 @@ pub fn build(b: *std.Build) void {
     });
     mod.export_symbol_names = &.{"__stack_pointer"};
     mod.addIncludePath(b.path(".."));
+    mod.addCMacro("_POSIX_C_SOURCE", "199309L");
     mod.addCMacro("LIBOPNA_ENABLE_LEVELDATA", "");
     mod.addCSourceFiles(.{
         .root = b.path(".."),

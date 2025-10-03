@@ -1,4 +1,7 @@
+const EINVAL = 28;
 const ENOTSUP = 58;
+
+const CLOCK_MONOTONIC = 1;
 
 /**
  * @param {WebAssembly.Memory} memory 
@@ -7,8 +10,18 @@ export function imports(memory) {
   return {
     args_get() { return ENOTSUP; },
     args_sizes_get() { return ENOTSUP; },
-    clock_res_get() { return ENOTSUP; },
-    clock_time_get() { return ENOTSUP; },
+    clock_res_get(id, timestampPtr) {
+      if (id !== CLOCK_MONOTONIC) return EINVAL;
+      const timestamp = new DataView(memory.buffer, timestampPtr);
+      timestamp.setBigUint64(0, 1_000_000_000n, true);
+      return 0;
+    },
+    clock_time_get(id, _precision, timestampPtr) {
+      if (id !== CLOCK_MONOTONIC) return EINVAL;
+      const timestamp = new DataView(memory.buffer, timestampPtr);
+      timestamp.setBigUint64(0, BigInt(Math.round(performance.now() * 1_000_000)), true);
+      return 0;
+    },
     environ_get() { return ENOTSUP; },
     environ_sizes_get() { return ENOTSUP; },
     fd_advise() { return ENOTSUP; },
@@ -31,16 +44,15 @@ export function imports(memory) {
     fd_seek() { return ENOTSUP; },
     fd_sync() { return ENOTSUP; },
     fd_tell() { return ENOTSUP; },
-    fd_write(fd, iovs, iovsLen, nWritten) {
+    fd_write(_fd, iovsPtr, iovsLen, sizePtr) {
       // Temporary stub implementation that writes nothing
-      // TODO: use of Uint32Array won't work correctly on big endian
-      const iovsData = new Uint32Array(memory.buffer, iovs, iovsLen * 2);
+      const iovs = new DataView(memory.buffer, iovsPtr);
       let n = 0;
       for (let i = 0; i < iovsLen; i++) {
-        n += iovsData[2 * i + 1];
+        n += iovs.getUint32(2 * i + 1, true);
       }
-      const retData = new Uint32Array(memory.buffer, nWritten, 1);
-      retData[0] = n;
+      const nWritten = new DataView(memory.buffer, sizePtr);
+      nWritten.setUint32(0, n, true);
       return 0;
     },
     path_create_directory() { return ENOTSUP; },
