@@ -47,7 +47,7 @@ fileInput.addEventListener("change", () => {
     fileBuf.set(new Uint8Array(reader.result));
     // TODO: need to encode using Shift JIS
     const filenameBuf = new Uint8Array(memory.buffer, wasm.exports.getFilenameBuf(), 128);
-    filenameBuf.set(utf8Encoder.encode(fileInput.files[0].name + "\u0000"));
+    filenameBuf.set(utf8Encoder.encode(fileInput.files[0].name + "\0"));
     wasm.exports.loadFile(reader.result.byteLength);
     audioCtx.resume();
   };
