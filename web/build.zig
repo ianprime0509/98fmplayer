@@ -48,6 +48,7 @@ pub fn build(b: *std.Build) void {
             "fmdsp/fmdsp-pacc.c",
             "fmdsp/font_fmdsp_small.c",
             "fmdsp/font_rom.c",
+            "fmdsp/fmdsp_platform_wasi.c",
             "pacc/pacc-js.c",
             "web/main.c",
         },
