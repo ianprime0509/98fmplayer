@@ -1,4 +1,4 @@
-import { imports as paccImports } from "./pacc-webgl.js";
+import { imports as paccImports } from "./pacc-js.js";
 import { imports as wasiImports } from "./wasi.js";
 
 const MAX_SAMPLES = 128;
