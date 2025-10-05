@@ -1,6 +1,7 @@
 #include <stdatomic.h>
 
 #include "common/fmplayer_common.h"
+#include "common/fmplayer_drumrom_static.h"
 #include "common/fmplayer_file.h"
 #include "libopna/opna.h"
 #include "libopna/opnadrum.h"
@@ -48,6 +49,8 @@ static struct {
 };
 
 EXPORT("init") bool fmplayer_web_init(void) {
+  fmplayer_drum_rom_static_set(opna_drum_rom);
+
   fft_init_table();
   fmplayer_init_work_opna(&g.work, &g.ppz8, &g.opna, &g.opna_timer, g.adpcm_ram);
 
@@ -133,9 +136,4 @@ EXPORT("mix") void fmplayer_web_mix(size_t samples) {
     fft_write(&g.at_fftdata, g.audio_buf, samples);
     atomic_flag_clear_explicit(&g.at_fftdata_flag, memory_order_release);
   }
-}
-
-bool fmplayer_drum_rom_load(struct opna_drum *drum) {
-  opna_drum_set_rom(drum, opna_drum_rom);
-  return true;
 }
