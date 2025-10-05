@@ -17,7 +17,10 @@ class AudioProcessor extends AudioWorkletProcessor {
       pacc: paccImports(memory, null),
       wasi_snapshot_preview1: wasiImports(memory),
     });
-    this.wasm.exports.__stack_pointer.value = 4 * 1024 * 1024;
+    // Hacky way to have different stacks for the main "thread" and this worker:
+    // this worker gets the first half of the stack, and the main "thread" gets
+    // the second half. The stack is located at the beginning of memory.
+    this.wasm.exports.__stack_pointer.value /= 2;
   }
 
   process(_inputs, outputs, _parameters) {

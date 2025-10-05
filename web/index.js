@@ -15,7 +15,7 @@ const wasm = await WebAssembly.instantiate(source, {
   pacc: paccImports(memory, gl),
   wasi_snapshot_preview1: wasiImports(memory),
 }).then((r) => r.instance);
-wasm.exports.__stack_pointer.value = 8 * 1024 * 1024;
+wasm.exports._initialize();
 
 if (wasm.exports.init() !== 1) throw new Error("init failed");
 
