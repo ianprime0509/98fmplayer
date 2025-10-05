@@ -35,6 +35,7 @@ static struct {
   char adpcm_ram[OPNA_ADPCM_RAM_SIZE];
   struct fmplayer_file fmfile;
   uint8_t fmfile_data[0xffff];
+  char filename_data[128];
   struct fmdsp_font font98;
   atomic_flag at_fftdata_flag;
   struct fmplayer_fft_data at_fftdata;
@@ -69,9 +70,16 @@ EXPORT("getFileBuf") uint8_t *fmplayer_web_get_file_buf(void) {
   return g.fmfile_data;
 }
 
+EXPORT("getFilenameBuf") char *fmplayer_web_get_filename_buf(void) {
+  return g.filename_data;
+}
+
 EXPORT("loadFile") bool fmplayer_web_load_file(size_t len) {
   // TODO: this is very bare bones
   while (atomic_flag_test_and_set_explicit(&g.opna_flag, memory_order_acquire));
+  memset(g.adpcm_ram, 0, sizeof(g.adpcm_ram));
+  fmplayer_init_work_opna(&g.work, &g.ppz8, &g.opna, &g.opna_timer, g.adpcm_ram);
+  memset(&g.fmfile, 0, sizeof(g.fmfile));
   if (!pmd_load(&g.fmfile.driver.pmd, g.fmfile_data, len)) goto err;
   pmd_init(&g.work, &g.fmfile.driver.pmd);
   g.work.pcmerror[0] = true;
@@ -79,6 +87,7 @@ EXPORT("loadFile") bool fmplayer_web_load_file(size_t len) {
   g.work.pcmerror[2] = true;
   atomic_flag_clear_explicit(&g.opna_flag, memory_order_release);
 
+  fmdsp_pacc_set_filename_sjis(g.fp, g.filename_data);
   fmdsp_pacc_update_file(g.fp);
   fmdsp_pacc_comment_reset(g.fp);
 
@@ -86,6 +95,12 @@ EXPORT("loadFile") bool fmplayer_web_load_file(size_t len) {
 err:
   atomic_flag_clear_explicit(&g.opna_flag, memory_order_release);
   return false;
+}
+
+EXPORT("setPalette") void fmplayer_web_set_palette(int p) {
+  if (p < 0) p = 0;
+  if (p >= 10) p = 9;
+  fmdsp_pacc_palette(g.fp, p);
 }
 
 EXPORT("render") void fmplayer_web_render(void) {

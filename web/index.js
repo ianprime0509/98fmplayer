@@ -38,14 +38,23 @@ const audioNode = new AudioWorkletNode(audioCtx, "audio", {
 });
 audioNode.connect(audioCtx.destination);
 
+const utf8Encoder = new TextEncoder();
 const fileInput = document.getElementById("file");
 fileInput.addEventListener("change", () => {
   const reader = new FileReader();
   reader.onload = () => {
     const fileBuf = new Uint8Array(memory.buffer, wasm.exports.getFileBuf(), 0xffff);
     fileBuf.set(new Uint8Array(reader.result));
+    // TODO: need to encode using Shift JIS
+    const filenameBuf = new Uint8Array(memory.buffer, wasm.exports.getFilenameBuf(), 128);
+    filenameBuf.set(utf8Encoder.encode(fileInput.files[0].name + "\u0000"));
     wasm.exports.loadFile(reader.result.byteLength);
     audioCtx.resume();
   };
   reader.readAsArrayBuffer(fileInput.files[0]);
+});
+
+const paletteInput = document.getElementById("palette");
+paletteInput.addEventListener("change", () => {
+  wasm.exports.setPalette(paletteInput.value - 1);
 });
