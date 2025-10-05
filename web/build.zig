@@ -48,8 +48,8 @@ pub fn build(b: *std.Build) void {
             "fmdsp/fmdsp-pacc.c",
             "fmdsp/font_fmdsp_small.c",
             "fmdsp/font_rom.c",
+            "pacc/pacc-js.c",
             "web/main.c",
-            "web/pacc-webgl.c",
         },
         .flags = &.{
             "-Wall",
@@ -74,11 +74,11 @@ pub fn build(b: *std.Build) void {
     exe.shared_memory = true;
     exe.stack_size = 8 * 1024 * 1024;
 
+    b.getInstallStep().dependOn(&b.addInstallFileWithDir(b.path("../pacc/pacc-js.js"), .prefix, "pacc-js.js").step);
     const static_files: []const []const u8 = &.{
         "index.html",
         "index.js",
         "audio.js",
-        "pacc-webgl.js",
         "wasi.js",
     };
     for (static_files) |static_file| {

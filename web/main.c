@@ -12,7 +12,7 @@
 #include "fmdsp/fmdsp-pacc.h"
 #include "fmdsp/font.h"
 #include "fmdsp/fontrom_shinonome.inc"
-#include "pacc-webgl.h"
+#include "pacc/pacc-js.h"
 
 #define EXPORT(name) __attribute__((export_name(name)))
 
@@ -53,7 +53,7 @@ EXPORT("init") bool fmplayer_web_init(void) {
   fft_init_table();
   fmplayer_init_work_opna(&g.work, &g.ppz8, &g.opna, &g.opna_timer, g.adpcm_ram);
 
-  g.pc = pacc_init_webgl(PC98_W, PC98_H, &g.pacc);
+  g.pc = pacc_init_js(PC98_W, PC98_H, &g.pacc);
   if (!g.pc) goto err;
   g.fp = fmdsp_pacc_alloc();
   if (!g.fp) goto err;

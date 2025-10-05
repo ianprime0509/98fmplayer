@@ -3,6 +3,6 @@
 
 #include "pacc/pacc.h"
 
-struct pacc_ctx *pacc_init_webgl(int w, int h, struct pacc_vtable *vt);
+struct pacc_ctx *pacc_init_js(int w, int h, struct pacc_vtable *vt);
 
 #endif // MYON_PACC_WEBGL_H_INCLUDED

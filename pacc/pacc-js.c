@@ -1,4 +1,4 @@
-#include "pacc-webgl.h"
+#include "pacc-js.h"
 #include "pacc/pacc.h"
 #include <stdbool.h>
 #include <stdio.h>
@@ -260,7 +260,7 @@ static void pacc_viewport_scale(struct pacc_ctx *pc, int scale) {
   (void)scale;
 }
 
-static struct pacc_vtable pacc_webgl_vtable = {
+static struct pacc_vtable pacc_js_vtable = {
   .pacc_delete = pacc_delete,
   .gen_buf = pacc_gen_buf,
   .gen_tex = pacc_gen_tex,
@@ -280,7 +280,7 @@ static struct pacc_vtable pacc_webgl_vtable = {
   .viewport_scale = pacc_viewport_scale,
 };
 
-struct pacc_ctx *pacc_init_webgl(int w, int h, struct pacc_vtable *vt) {
+struct pacc_ctx *pacc_init_js(int w, int h, struct pacc_vtable *vt) {
   pacc_js_init();
 
   struct pacc_ctx *pc = malloc(sizeof(*pc));
@@ -289,7 +289,7 @@ struct pacc_ctx *pacc_init_webgl(int w, int h, struct pacc_vtable *vt) {
     .w = w,
     .h = h,
   };
-  *vt = pacc_webgl_vtable;
+  *vt = pacc_js_vtable;
   return pc;
 err:
   pacc_delete(pc);
