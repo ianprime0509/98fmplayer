@@ -58,3 +58,18 @@ const paletteInput = document.getElementById("palette");
 paletteInput.addEventListener("change", () => {
   wasm.exports.setPalette(paletteInput.value - 1);
 });
+
+const body = document.getElementById("body");
+body.addEventListener("keydown", (ev) => {
+  switch (ev.key) {
+  case " ":
+    wasm.exports.togglePaused();
+    break;
+  case "ArrowDown":
+    wasm.exports.commentScroll(true);
+    break;
+  case "ArrowUp":
+    wasm.exports.commentScroll(false);
+    break;
+  }
+});

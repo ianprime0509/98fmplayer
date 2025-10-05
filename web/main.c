@@ -115,10 +115,20 @@ EXPORT("getAudioBuf") int16_t *fmplayer_web_get_audio_buf(void) {
   return g.audio_buf;
 }
 
+EXPORT("togglePaused") void fmplayer_web_toggle_paused(void) {
+  g.work.paused = !g.work.paused;
+}
+
+EXPORT("commentScroll") void fmplayer_web_comment_scroll(bool down) {
+  fmdsp_pacc_comment_scroll(g.fp, down);
+}
+
 EXPORT("mix") void fmplayer_web_mix(size_t samples) {
-  while (atomic_flag_test_and_set_explicit(&g.opna_flag, memory_order_acquire));
   memset(g.audio_buf, 0, sizeof(g.audio_buf));
-  opna_timer_mix(&g.opna_timer, g.audio_buf, samples);
+  while (atomic_flag_test_and_set_explicit(&g.opna_flag, memory_order_acquire));
+  if (!g.work.paused) {
+    opna_timer_mix(&g.opna_timer, g.audio_buf, samples);
+  }
   atomic_flag_clear_explicit(&g.opna_flag, memory_order_release);
 
   if (!atomic_flag_test_and_set_explicit(&g.at_fftdata_flag, memory_order_acquire)) {
