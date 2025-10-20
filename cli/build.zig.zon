@@ -1,0 +1,18 @@
+.{
+    .name = .fmplayer,
+    .version = "0.1.14",
+    .fingerprint = 0xb01c80b6a5ae0ec3,
+    .minimum_zig_version = "0.15.1",
+    .paths = .{""},
+    .dependencies = .{
+        .portaudio = .{
+            .url = "git+https://github.com/allyourcodebase/portaudio?ref=main#9ebdee1dbcbb02e4f65c57f67028ee23e84b1ea2",
+            .hash = "portaudio-19.7.0-2-Wv4wb8IrAAA3nebRbuallsoerxEHkOdyCwouQlxPKumz",
+            .lazy = true,
+        },
+        .pmdc = .{
+            .url = "git+https://github.com/ianprime0509/pmdc?ref=main#b1fc8332eb9ad8a51372034e539675672d54ad02",
+            .hash = "pmdc-0.0.0-hzvMAnr0AgB2lfjyo3-ncr3DgF7ADx1pxETXfCelFnS_",
+        },
+    },
+}
