@@ -1,7 +1,7 @@
 .{
-    .name = .fmplayer,
+    .name = ._98fmplayer,
     .version = "0.1.14",
-    .fingerprint = 0xb01c80b6a5ae0ec3,
+    .fingerprint = 0x54f00ce9bb8bdbd9,
     .minimum_zig_version = "0.15.1",
     .paths = .{""},
     .dependencies = .{
