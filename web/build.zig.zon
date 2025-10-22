@@ -1,0 +1,14 @@
+.{
+    .name = ._98fmplayer,
+    .version = "0.1.14",
+    .fingerprint = 0x54f00ce9790aa0e3,
+    .minimum_zig_version = "0.15.1",
+    .paths = .{""},
+    .dependencies = .{
+        .coi_serviceworker = .{
+            .url = "git+https://github.com/gzuidhof/coi-serviceworker?ref=master#7b1d2a092d0d2dd2b7270b6f12f13605de26f214",
+            .hash = "N-V-__8AALBeAADzGTPyN1vCB-AQXWob5VNrLmfR7XwYWHdu",
+            .lazy = true,
+        },
+    },
+}

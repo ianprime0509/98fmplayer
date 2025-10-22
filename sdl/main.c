@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <stdatomic.h>
 #include "pacc/pacc.h"
+#include "pacc/pacc-gl.h"
 #include "fmdsp/fmdsp-pacc.h"
 #include "fmdsp/font.h"
 #include "libopna/opna.h"

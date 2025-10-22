@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>98fmplayer</title>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: black;
+      --fg: rgb(170, 170, 153);
+      --primary: rgb(102, 136, 255);
+      --primary-faded: rgb(51, 51, 238);
+    }
+
+    html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      margin: auto;
+
+      background-color: var(--bg);
+      color: var(--fg);
+      font-family: monospace;
+    }
+
+    *:focus {
+      outline: 1px dashed var(--fg);
+    }
+
+    a {
+      color: var(--primary);
+    }
+
+    a:visited {
+      color: var(--primary-faded);
+    }
+
+    #fmdsp {
+      width: min(100%, calc(100vh * 640 / 400));
+      height: auto;
+      image-rendering: pixelated;
+      margin: 1rem;
+    }
+
+    @media (min-width: 640px) and (min-height: 400px) {
+      #fmdsp {
+        width: 640px;
+        height: 400px;
+      }
+    }
+
+    @media (min-width: 1280px) and (min-height: 800px) {
+      #fmdsp {
+        width: 1280px;
+        height: 800px;
+      }
+    }
+
+    footer {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    footer p {
+      margin: 0.25rem;
+      padding: 0;
+    }
+  </style>
+</head>
+<body>
+  <label>Select a song: <input type="file" id="song-select"></label>
+  <p>(Note: external PPZ, etc. files not yet supported in this version)</p>
+  <canvas id="fmdsp" width="640" height="400" tabindex="0"></canvas>
+  <footer>
+    <p><a href="https://github.com/ianprime0509/98fmplayer">GitHub</a></p>
+  </footer>
+
+  <script type="module" src="index.js"></script>
+  <script src="coi-serviceworker.min.js"></script>
+</body>
+</html>

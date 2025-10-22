@@ -49,6 +49,4 @@ struct pacc_vtable {
   void (*viewport_scale)(struct pacc_ctx *ctx, int scale);
 };
 
-struct pacc_ctx *pacc_init_gl(int w, int h, struct pacc_vtable *vt);
-
 #endif // MYON_PACC_H_INCLUDED
