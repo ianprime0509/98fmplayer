@@ -1,0 +1,118 @@
+const std = @import("std");
+
+pub fn build(b: *std.Build) void {
+    const target = b.resolveTargetQuery(.{
+        .cpu_arch = .wasm32,
+        .cpu_model = .baseline,
+        .cpu_features_add = std.Target.wasm.featureSet(&.{
+            // See https://webassembly.org/features/ for support
+            .atomics,
+            .bulk_memory,
+            .extended_const,
+            .multivalue,
+            .mutable_globals,
+            .nontrapping_fptoint,
+            .reference_types,
+            .sign_ext,
+            .tail_call,
+        }),
+        .os_tag = .wasi,
+    });
+    const optimize = b.standardOptimizeOption(.{});
+
+    // https://github.com/orgs/community/discussions/22399
+    const use_coi_service_worker = b.option(
+        bool,
+        "use-coi-service-worker",
+        "Use cross-origin isolation service worker hack",
+    ) orelse false;
+
+    const mod = b.createModule(.{
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    mod.export_symbol_names = &.{"__stack_pointer"};
+    mod.addIncludePath(b.path(".."));
+    mod.addCMacro("_POSIX_C_SOURCE", "199309L");
+    mod.addCMacro("LIBOPNA_ENABLE_LEVELDATA", "");
+    mod.addCSourceFiles(.{
+        .root = b.path(".."),
+        .files = &.{
+            "common/fmplayer_drumrom_static.c",
+            "common/fmplayer_file.c",
+            "common/fmplayer_file_js.c",
+            "common/fmplayer_work_opna.c",
+            "libopna/opnaadpcm.c",
+            "libopna/opnadrum.c",
+            "libopna/opnafm.c",
+            "libopna/opnassg.c",
+            "libopna/opnassg-sinc-c.c",
+            "libopna/opnatimer.c",
+            "libopna/opna.c",
+            "fmdriver/fmdriver_fmp.c",
+            "fmdriver/fmdriver_pmd.c",
+            "fmdriver/fmdriver_common.c",
+            "fmdriver/ppz8.c",
+            "fft/fft.c",
+            "fmdsp/fmdsp-pacc.c",
+            "fmdsp/font_fmdsp_small.c",
+            "fmdsp/font_rom.c",
+            "fmdsp/fmdsp_platform_js.c",
+            "pacc/pacc-js.c",
+            "web/main.c",
+        },
+        .flags = &.{
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            "-pedantic",
+            "-Wno-unknown-attributes", // due to optimize attribute
+            "-std=c99",
+            "-fno-sanitize=shift",
+        },
+    });
+
+    const exe = b.addExecutable(.{
+        .name = "main",
+        .root_module = mod,
+    });
+    exe.entry = .disabled;
+    exe.wasi_exec_model = .reactor;
+    exe.import_memory = true;
+    exe.initial_memory = 64 * 1024 * 1024;
+    exe.max_memory = 64 * 1024 * 1024;
+    exe.shared_memory = true;
+    exe.stack_size = 8 * 1024 * 1024;
+
+    const static_files: []const []const u8 = &.{
+        "index.html",
+        "index.js",
+        "audio.js",
+        "wasi.js",
+        "../common/fmplayer_file_js.js",
+        "../fmdsp/fmdsp_platform_js.js",
+        "../pacc/pacc-js.js",
+    };
+    for (static_files) |path| {
+        b.getInstallStep().dependOn(&b.addInstallFileWithDir(
+            b.path(path),
+            .prefix,
+            std.fs.path.basenamePosix(path),
+        ).step);
+    }
+    b.getInstallStep().dependOn(&b.addInstallFileWithDir(
+        exe.getEmittedBin(),
+        .prefix,
+        "main.wasm",
+    ).step);
+
+    if (use_coi_service_worker) coi: {
+        const coi_dep = b.lazyDependency("coi_serviceworker", .{}) orelse break :coi;
+        b.getInstallStep().dependOn(&b.addInstallFileWithDir(
+            coi_dep.path("coi-serviceworker.min.js"),
+            .prefix,
+            "coi-serviceworker.min.js",
+        ).step);
+    }
+}
