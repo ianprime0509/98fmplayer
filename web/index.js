@@ -1,5 +1,10 @@
+import { imports as fileImports } from "./fmplayer_file_js.js";
+import { imports as platformImports } from "./fmdsp_platform_js.js";
 import { imports as paccImports } from "./pacc-js.js";
 import { imports as wasiImports } from "./wasi.js";
+
+const files = {};
+const fmdspEvents = new EventTarget();
 
 const canvas = document.getElementById("fmdsp");
 const gl = canvas.getContext("webgl");
@@ -12,6 +17,8 @@ const memory = new WebAssembly.Memory({
 });
 const wasm = await WebAssembly.instantiate(source, {
   env: { memory },
+  fmplayer_file: fileImports(memory, files),
+  fmdsp_platform: platformImports(),
   pacc: paccImports(memory, gl),
   wasi_snapshot_preview1: wasiImports(memory),
 }).then((r) => r.instance);
@@ -19,11 +26,14 @@ wasm.exports._initialize();
 
 if (wasm.exports.init() !== 1) throw new Error("init failed");
 
+let wasPlaying = false;
 function render() {
   wasm.exports.render();
+  const playing = wasm.exports.playing();
+  if (wasPlaying && !playing) fmdspEvents.dispatchEvent(new Event("stopped"));
+  wasPlaying = playing;
   requestAnimationFrame(render);
 }
-
 requestAnimationFrame(render);
 
 const audioCtx = new AudioContext({
@@ -39,37 +49,26 @@ const audioNode = new AudioWorkletNode(audioCtx, "audio", {
 audioNode.connect(audioCtx.destination);
 
 const utf8Encoder = new TextEncoder();
-const fileInput = document.getElementById("file");
-fileInput.addEventListener("change", () => {
+const songSelect = document.getElementById("song-select");
+songSelect.addEventListener("change", () => {
   const reader = new FileReader();
-  reader.onload = () => {
-    const fileBuf = new Uint8Array(memory.buffer, wasm.exports.getFileBuf(), 0xffff);
-    fileBuf.set(new Uint8Array(reader.result));
-    // TODO: need to encode using Shift JIS
+  reader.addEventListener("load", () => {
+    const filename = songSelect.files[0].name;
+    for (const file in files) delete files[file];
+    files[filename] = new Uint8Array(reader.result);
     const filenameBuf = new Uint8Array(memory.buffer, wasm.exports.getFilenameBuf(), 128);
-    filenameBuf.set(utf8Encoder.encode(fileInput.files[0].name + "\0"));
-    wasm.exports.loadFile(reader.result.byteLength);
+    filenameBuf.set(utf8Encoder.encode(filename + "\0"));
+    wasm.exports.loadFile();
     audioCtx.resume();
-  };
-  reader.readAsArrayBuffer(fileInput.files[0]);
+  });
+  reader.readAsArrayBuffer(songSelect.files[0]);
 });
 
-const paletteInput = document.getElementById("palette");
-paletteInput.addEventListener("change", () => {
-  wasm.exports.setPalette(paletteInput.value - 1);
-});
-
-const body = document.getElementById("body");
-body.addEventListener("keydown", (ev) => {
+canvas.addEventListener("click", () => wasm.exports.togglePaused());
+canvas.addEventListener("keydown", (ev) => {
   switch (ev.key) {
   case " ":
     wasm.exports.togglePaused();
-    break;
-  case "ArrowDown":
-    wasm.exports.commentScroll(true);
-    break;
-  case "ArrowUp":
-    wasm.exports.commentScroll(false);
     break;
   }
 });

@@ -1,10 +1,10 @@
 #include <stdatomic.h>
+#include <stdlib.h>
 
 #include "common/fmplayer_common.h"
 #include "common/fmplayer_drumrom_static.h"
 #include "common/fmplayer_file.h"
 #include "libopna/opna.h"
-#include "libopna/opnadrum.h"
 #include "libopna/opnatimer.h"
 #include "fmdriver/fmdriver.h"
 #include "fft/fft.h"
@@ -13,16 +13,12 @@
 #include "fmdsp/fontrom_shinonome.inc"
 #include "pacc/pacc-js.h"
 
+#include "drumrom.inc"
+
 #define EXPORT(name) __attribute__((export_name(name)))
 
 enum {
   MAX_SAMPLES = 128,
-};
-
-static uint8_t opna_drum_rom[OPNA_ROM_SIZE] = {
-#if __has_embed("ym2608_adpcm_rom.bin")
-#embed "ym2608_adpcm_rom.bin"
-#endif
 };
 
 static struct {
@@ -32,9 +28,8 @@ static struct {
   struct ppz8 ppz8;
   struct fmdriver_work work;
   char adpcm_ram[OPNA_ADPCM_RAM_SIZE];
-  struct fmplayer_file fmfile;
-  uint8_t fmfile_data[0xffff];
-  char filename_data[128];
+  char filename_buf[128];
+  struct fmplayer_file *fmfile;
   struct fmdsp_font font98;
   atomic_flag at_fftdata_flag;
   struct fmplayer_fft_data at_fftdata;
@@ -67,28 +62,23 @@ err:
   return false;
 }
 
-EXPORT("getFileBuf") uint8_t *fmplayer_web_get_file_buf(void) {
-  return g.fmfile_data;
-}
-
 EXPORT("getFilenameBuf") char *fmplayer_web_get_filename_buf(void) {
-  return g.filename_data;
+  return g.filename_buf;
 }
 
-EXPORT("loadFile") bool fmplayer_web_load_file(size_t len) {
-  // TODO: this is very bare bones
+EXPORT("loadFile") bool fmplayer_web_load_file(void) {
   while (atomic_flag_test_and_set_explicit(&g.opna_flag, memory_order_acquire));
+  if (g.fmfile) fmplayer_file_free(g.fmfile);
   memset(g.adpcm_ram, 0, sizeof(g.adpcm_ram));
   fmplayer_init_work_opna(&g.work, &g.ppz8, &g.opna, &g.opna_timer, g.adpcm_ram);
-  memset(&g.fmfile, 0, sizeof(g.fmfile));
-  if (!pmd_load(&g.fmfile.driver.pmd, g.fmfile_data, len)) goto err;
-  pmd_init(&g.work, &g.fmfile.driver.pmd);
-  g.work.pcmerror[0] = true;
-  g.work.pcmerror[1] = true;
-  g.work.pcmerror[2] = true;
+  g.fmfile = fmplayer_file_alloc(g.filename_buf, 0);
+  if (!g.fmfile) goto err;
+  fmplayer_file_load(&g.work, g.fmfile, 1);
   atomic_flag_clear_explicit(&g.opna_flag, memory_order_release);
 
-  fmdsp_pacc_set_filename_sjis(g.fp, g.filename_data);
+  if (g.fmfile->filename_sjis) {
+    fmdsp_pacc_set_filename_sjis(g.fp, g.fmfile->filename_sjis);
+  }
   fmdsp_pacc_update_file(g.fp);
   fmdsp_pacc_comment_reset(g.fp);
 
@@ -114,6 +104,10 @@ EXPORT("render") void fmplayer_web_render(void) {
 
 EXPORT("getAudioBuf") int16_t *fmplayer_web_get_audio_buf(void) {
   return g.audio_buf;
+}
+
+EXPORT("playing") bool fmplayer_web_playing(void) {
+  return g.work.playing;
 }
 
 EXPORT("togglePaused") void fmplayer_web_toggle_paused(void) {

@@ -20,6 +20,13 @@ pub fn build(b: *std.Build) void {
     });
     const optimize = b.standardOptimizeOption(.{});
 
+    // https://github.com/orgs/community/discussions/22399
+    const use_coi_service_worker = b.option(
+        bool,
+        "use-coi-service-worker",
+        "Use cross-origin isolation service worker hack",
+    ) orelse false;
+
     const mod = b.createModule(.{
         .target = target,
         .optimize = optimize,
@@ -33,6 +40,8 @@ pub fn build(b: *std.Build) void {
         .root = b.path(".."),
         .files = &.{
             "common/fmplayer_drumrom_static.c",
+            "common/fmplayer_file.c",
+            "common/fmplayer_file_js.c",
             "common/fmplayer_work_opna.c",
             "libopna/opnaadpcm.c",
             "libopna/opnadrum.c",
@@ -49,7 +58,7 @@ pub fn build(b: *std.Build) void {
             "fmdsp/fmdsp-pacc.c",
             "fmdsp/font_fmdsp_small.c",
             "fmdsp/font_rom.c",
-            "fmdsp/fmdsp_platform_wasi.c",
+            "fmdsp/fmdsp_platform_js.c",
             "pacc/pacc-js.c",
             "web/main.c",
         },
@@ -59,7 +68,7 @@ pub fn build(b: *std.Build) void {
             "-Werror",
             "-pedantic",
             "-Wno-unknown-attributes", // due to optimize attribute
-            "-std=c23",
+            "-std=c99",
             "-fno-sanitize=shift",
         },
     });
@@ -76,15 +85,34 @@ pub fn build(b: *std.Build) void {
     exe.shared_memory = true;
     exe.stack_size = 8 * 1024 * 1024;
 
-    b.getInstallStep().dependOn(&b.addInstallFileWithDir(b.path("../pacc/pacc-js.js"), .prefix, "pacc-js.js").step);
     const static_files: []const []const u8 = &.{
         "index.html",
         "index.js",
         "audio.js",
         "wasi.js",
+        "../common/fmplayer_file_js.js",
+        "../fmdsp/fmdsp_platform_js.js",
+        "../pacc/pacc-js.js",
     };
-    for (static_files) |static_file| {
-        b.getInstallStep().dependOn(&b.addInstallFileWithDir(b.path(static_file), .prefix, static_file).step);
+    for (static_files) |path| {
+        b.getInstallStep().dependOn(&b.addInstallFileWithDir(
+            b.path(path),
+            .prefix,
+            std.fs.path.basenamePosix(path),
+        ).step);
     }
-    b.getInstallStep().dependOn(&b.addInstallFileWithDir(exe.getEmittedBin(), .prefix, "main.wasm").step);
+    b.getInstallStep().dependOn(&b.addInstallFileWithDir(
+        exe.getEmittedBin(),
+        .prefix,
+        "main.wasm",
+    ).step);
+
+    if (use_coi_service_worker) coi: {
+        const coi_dep = b.lazyDependency("coi_serviceworker", .{}) orelse break :coi;
+        b.getInstallStep().dependOn(&b.addInstallFileWithDir(
+            coi_dep.path("coi-serviceworker.min.js"),
+            .prefix,
+            "coi-serviceworker.min.js",
+        ).step);
+    }
 }
