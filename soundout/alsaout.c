@@ -6,7 +6,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <poll.h>
-#include <asoundlib.h>
+#include <alsa/asoundlib.h>
 
 enum {
   BUF_FRAMES = 1024,
