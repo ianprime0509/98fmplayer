@@ -1,0 +1,14 @@
+.{
+    .name = ._98fmplayer,
+    .version = "0.1.14",
+    .dependencies = .{
+        .sdl = .{
+            .url = "git+https://github.com/allyourcodebase/SDL?ref=main#4bd594b3acb67a950fae81126ee0a3af3395b09c",
+            .hash = "SDL-2.32.10-JToi3_a0EgFQAnsafUA-gNv9ku-yxMoYF9Wjq7HhD5q5",
+            .lazy = true,
+        },
+    },
+    .fingerprint = 0x54f00ce9e5c27951,
+    .minimum_zig_version = "0.15.2",
+    .paths = .{""},
+}

@@ -1,5 +1,3 @@
-
-#define _POSIX_C_SOURCE 200809l
 #include "common/fmplayer_file.h"
 #include <stdio.h>
 #include <stdlib.h>

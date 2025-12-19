@@ -25,7 +25,7 @@ bool loadgl(void) {
   return true;
 }
 #else // PACC_GL_ES
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #define PROC(N, n) static PFNGL##N##PROC gl##n;
 #include "pacc/pacc-gl-procs.inc"
 #undef PROC
