@@ -14,7 +14,7 @@ enum {
 static void msgbox_err(GtkWindow *parent, const char *msg) {
   GtkWidget *d = gtk_message_dialog_new(parent, GTK_DIALOG_MODAL,
                           GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE,
-                          msg);
+                          "%s", msg);
   gtk_dialog_run(GTK_DIALOG(d));
   gtk_widget_destroy(d);
 }

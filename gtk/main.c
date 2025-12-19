@@ -3,7 +3,6 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <cairo.h>
 #include <stdatomic.h>
 
 #include "common/fmplayer_file.h"
@@ -236,7 +235,7 @@ static void on_file_activated(GtkFileChooser *chooser, gpointer ptr) {
   }
 }
 
-static GtkWidget *create_menubar() {
+static GtkWidget *create_menubar(void) {
   GtkWidget *menubar = gtk_menu_bar_new();
   GtkWidget *menu = gtk_menu_new();
   GtkWidget *file = gtk_menu_item_new_with_label("File");
@@ -310,31 +309,6 @@ static gboolean render_cb(GtkGLArea *glarea, GdkGLContext *glctx, gpointer ptr) 
   fmdsp_pacc_render(g.fp);
   return TRUE;
 }
-
-/*
-static gboolean draw_cb(GtkWidget *w,
-                 cairo_t *cr,
-                 gpointer p) {
-  (void)w;
-  (void)p;
-  if (!atomic_flag_test_and_set_explicit(
-    &g.at_fftdata_flag, memory_order_acquire)) {
-    memcpy(&g.fftdata.fdata, &g.at_fftdata, sizeof(g.fftdata));
-    atomic_flag_clear_explicit(&g.at_fftdata_flag, memory_order_release);
-  }
-  //fmdsp_update(&g.fmdsp, &g.work, &g.opna, g.vram, &g.fftdata);
-  fmdsp_vrampalette(&g.fmdsp, g.vram, g.vram32, g.vram32_stride);
-  cairo_surface_t *s = cairo_image_surface_create_for_data(
-    g.vram32, CAIRO_FORMAT_RGB24, PC98_W, PC98_H, g.vram32_stride);
-  if (g.fmdsp_2x) cairo_scale(cr, 2.0, 2.0);
-  cairo_set_source_surface(cr, s, 0.0, 0.0);
-  cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_NEAREST);
-  cairo_paint(cr);
-  cairo_surface_destroy(s);
-  return FALSE;
-}
-
-*/
 
 static gboolean tick_cb(GtkWidget *w,
                         GdkFrameClock *frame_clock,
@@ -537,7 +511,7 @@ int main(int argc, char **argv) {
   opna_ssg_sinc_calc_func = opna_ssg_sinc_calc_neon;
 #endif
 #ifdef ENABLE_SSE
-  if (__builtin_cpu_supports("sse2")) opna_ssg_sinc_calc_func = opna_ssg_sinc_calc_sse2;
+  opna_ssg_sinc_calc_func = opna_ssg_sinc_calc_sse2;
 #endif
   fft_init_table();
   fmplayer_font_rom_load(&g.font98);

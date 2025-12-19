@@ -385,7 +385,7 @@ static void pacc_draw(struct pacc_ctx *pc, struct pacc_buf *pb, enum pacc_mode m
   glBindTexture(GL_TEXTURE_2D, pb->tex->tex_obj);
   if (pb->tex->changed) {
     GLint format;
-#if PACC_GL_3
+#ifdef PACC_GL_3
     format = GL_RED;
 #else
     format = GL_LUMINANCE;
