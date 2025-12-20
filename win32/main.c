@@ -771,7 +771,12 @@ int CALLBACK wWinMain(HINSTANCE hinst, HINSTANCE hpinst,
   (void)hpinst;
   (void)cmdline_;
 
-  if (__builtin_cpu_supports("sse2")) opna_ssg_sinc_calc_func = opna_ssg_sinc_calc_sse2;
+#ifdef ENABLE_NEON
+  opna_ssg_sinc_calc_func = opna_ssg_sinc_calc_neon;
+#endif
+#ifdef ENABLE_SSE
+  opna_ssg_sinc_calc_func = opna_ssg_sinc_calc_sse2;
+#endif
 
   fft_init_table();
   about_set_fontrom_loaded(fmplayer_font_rom_load(&g.font));

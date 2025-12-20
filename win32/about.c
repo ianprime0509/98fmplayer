@@ -42,11 +42,18 @@ static void update_status(void) {
            L"Audio API: %ls\r\n"
            "ym2608_adpcm_rom.bin: %lsavailable\r\n"
            "font.rom: %ls\r\n"
-           "SSE2 (for SIMD SSG resampling): %lsavailable",
+           "Vector acceleration (for SIMD SSG resampling): %ls",
            g.soundapiname ? g.soundapiname : L"",
            g.adpcm_rom ? L"" : L"un",
            g.font_rom ? L"available" : L"unavailable, using MS Gothic",
-           __builtin_cpu_supports("sse2") ? L"" : L"un");
+#if defined(ENABLE_NEON)
+           L"Neon",
+#elif defined(ENABLE_SSE)
+           L"SSE"
+#else
+           L"unavailable"
+#endif
+           );
   SetWindowText(g.static_info, buf);
 }
 

@@ -1,0 +1,7 @@
+.{
+    .name = ._98fmplayer,
+    .version = "0.1.14",
+    .fingerprint = 0x54f00ce9357e617b,
+    .minimum_zig_version = "0.15.2",
+    .paths = .{""},
+}
