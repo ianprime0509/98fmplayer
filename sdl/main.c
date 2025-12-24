@@ -1,4 +1,4 @@
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 #include <stdbool.h>
 #include <stdatomic.h>
 #include "pacc/pacc.h"
@@ -17,7 +17,7 @@ bool loadgl(void);
 
 enum {
   SRATE = 55467,
-  BUFLEN = 1024,
+  BLOCK_FRAMES = 1024,
 };
 
 static struct {
@@ -29,7 +29,7 @@ static struct {
   struct fmplayer_fft_input_data fftin;
   const char *lastopenpath;
   SDL_Window *win;
-  SDL_AudioDeviceID adev;
+  SDL_AudioStream *stream;
   struct ppz8 ppz8;
   char adpcmram[OPNA_ADPCM_RAM_SIZE];
   struct fmdsp_pacc *fp;
@@ -42,16 +42,27 @@ static struct {
   .scale = 1,
 };
 
-static void audiocb(void *ptr, Uint8 *bufptr, int len) {
-  (void)ptr;
-  int frames = len / (sizeof(int16_t)*2);
-  int16_t *buf = (int16_t *)bufptr;
-  memset(buf, 0, len);
-  opna_timer_mix(&g.timer, buf, frames);
-  if (!atomic_flag_test_and_set_explicit(
-        &g.fftdata_flag, memory_order_acquire)) {
-    fft_write(&g.fftdata, buf, frames);
-    atomic_flag_clear_explicit(&g.fftdata_flag, memory_order_release);
+static void audiocb(
+  void *userdata,
+  SDL_AudioStream *stream,
+  int additional_amount,
+  int total_amount) {
+  (void)userdata;
+  (void)total_amount;
+  int needed_frames = additional_amount / 2 / sizeof(int16_t);
+  while (needed_frames > 0) {
+    int16_t buf[BLOCK_FRAMES * 2];
+    int frames = needed_frames >= BLOCK_FRAMES ? BLOCK_FRAMES : needed_frames;
+    int len = frames * 2 * sizeof(int16_t);
+    memset(buf, 0, len);
+    opna_timer_mix(&g.timer, buf, frames);
+    if (!atomic_flag_test_and_set_explicit(
+          &g.fftdata_flag, memory_order_acquire)) {
+      fft_write(&g.fftdata, buf, frames);
+      atomic_flag_clear_explicit(&g.fftdata_flag, memory_order_release);
+    }
+    SDL_PutAudioStreamData(stream, buf, len);
+    needed_frames -= frames;
   }
 }
 
@@ -66,7 +77,7 @@ static void openfile(const char *path) {
         g.win);
     goto err;
   }
-  if (g.adev) SDL_LockAudioDevice(g.adev);
+  if (g.stream) SDL_LockAudioStream(g.stream);
   fmplayer_file_free(g.fmfile);
   g.fmfile = file;
   fmplayer_init_work_opna(&g.work, &g.ppz8, &g.opna, &g.timer, &g.adpcmram);
@@ -76,16 +87,13 @@ static void openfile(const char *path) {
   }
   fmdsp_pacc_update_file(g.fp);
   fmdsp_pacc_comment_reset(g.fp);
-  if (!g.adev) {
-    SDL_AudioSpec aspec = {
-      .freq = SRATE,
-      .format = AUDIO_S16SYS,
-      .channels = 2,
-      .samples = BUFLEN,
-      .callback = audiocb,
-    };
-    g.adev = SDL_OpenAudioDevice(0, 0, &aspec, 0, 0);
-    if (!g.adev) {
+  if (!g.stream) {
+    g.stream = SDL_OpenAudioDeviceStream(
+      SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK,
+      &(SDL_AudioSpec){ .format = SDL_AUDIO_S16, .channels = 2, .freq = SRATE },
+      audiocb,
+      0);
+    if (!g.stream) {
       SDL_ShowSimpleMessageBox(
         SDL_MESSAGEBOX_ERROR,
         "cannot open audio device",
@@ -94,9 +102,9 @@ static void openfile(const char *path) {
       goto err;
     }
   } else {
-    SDL_UnlockAudioDevice(g.adev);
+    SDL_UnlockAudioStream(g.stream);
   }
-  SDL_PauseAudioDevice(g.adev, 0);
+  SDL_ResumeAudioStreamDevice(g.stream);
   g.paused = false;
   // path might be the same as g.lastopenpath
   const char *tmp = g.lastopenpath;
@@ -147,26 +155,30 @@ static void handle_keydown(
   const struct pacc_vtable *pacc,
   struct pacc_ctx *pc) {
   // F1 to F12 scancodes are continuous
-  if (SDL_SCANCODE_F1 <= key->keysym.scancode
-      && key->keysym.scancode <= SDL_SCANCODE_F12) {
-    if (key->keysym.mod & KMOD_CTRL) {
-      fmdsp_pacc_palette(g.fp, key->keysym.scancode - SDL_SCANCODE_F1);
+  if (SDL_SCANCODE_F1 <= key->scancode
+      && key->scancode <= SDL_SCANCODE_F12) {
+    if (key->mod & SDL_KMOD_CTRL) {
+      fmdsp_pacc_palette(g.fp, key->scancode - SDL_SCANCODE_F1);
     } else {
-      switch (key->keysym.scancode) {
+      switch (key->scancode) {
       case SDL_SCANCODE_F6:
 	if (g.lastopenpath) {
 	  openfile(g.lastopenpath);
 	}
 	break;
       case SDL_SCANCODE_F7:
-	if (g.adev) {
+	if (g.stream) {
 	  g.paused ^= 1;
 	  g.work.paused = g.paused;
-	  SDL_PauseAudioDevice(g.adev, g.paused);
+	  if (g.paused) {
+	    SDL_PauseAudioStreamDevice(g.stream);
+	  } else {
+	    SDL_ResumeAudioStreamDevice(g.stream);
+	  }
 	}
 	break;
       case SDL_SCANCODE_F11:
-	if (key->keysym.mod & KMOD_SHIFT) {
+	if (key->mod & SDL_KMOD_SHIFT) {
 	  fmdsp_pacc_set_right_mode(
 	    g.fp,
 	    (fmdsp_pacc_right_mode(g.fp) + 1) % FMDSP_RIGHT_MODE_CNT);
@@ -187,13 +199,13 @@ static void handle_keydown(
       }
     }
   } else {
-    const bool shift = key->keysym.mod & KMOD_SHIFT;
-    const bool ctrl = key->keysym.mod & KMOD_CTRL;
-    if (SDL_SCANCODE_1 <= key->keysym.scancode
-	&& key->keysym.scancode <= SDL_SCANCODE_0) {
-      mask_set(key->keysym.scancode - SDL_SCANCODE_1, shift, ctrl);
+    const bool shift = key->mod & SDL_KMOD_SHIFT;
+    const bool ctrl = key->mod & SDL_KMOD_CTRL;
+    if (SDL_SCANCODE_1 <= key->scancode
+	&& key->scancode <= SDL_SCANCODE_0) {
+      mask_set(key->scancode - SDL_SCANCODE_1, shift, ctrl);
     } else {
-      switch (key->keysym.scancode) {
+      switch (key->scancode) {
       case SDL_SCANCODE_MINUS:
 	mask_set(10, shift, ctrl);
 	break;
@@ -210,12 +222,12 @@ static void handle_keydown(
       }
     }
   }
-  switch (key->keysym.scancode) {
+  switch (key->scancode) {
   default:
     break;
   }
-  if (key->keysym.mod & KMOD_SHIFT) {
-    switch (key->keysym.scancode) {
+  if (key->mod & SDL_KMOD_SHIFT) {
+    switch (key->scancode) {
     case SDL_SCANCODE_UP:
       fmdsp_pacc_comment_scroll(g.fp, false);
       break;
@@ -238,7 +250,7 @@ int main(int argc, char **argv) {
   opna_ssg_sinc_calc_func = opna_ssg_sinc_calc_sse2;
 #endif
   fft_init_table();
-  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
+  if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO)) {
     SDL_Log("Cannot initialize SDL\n");
     return 1;
   }
@@ -267,11 +279,7 @@ int main(int argc, char **argv) {
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
 #endif
 #endif // PACC_GL_ES
-  g.win = SDL_CreateWindow(
-      "FMPlayer SDL",
-      SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-      PC98_W, PC98_H,
-      SDL_WINDOW_OPENGL);
+  g.win = SDL_CreateWindow("FMPlayer SDL", PC98_W, PC98_H, SDL_WINDOW_OPENGL);
   if (!g.win) {
     SDL_Log("Cannot create window\n");
     SDL_Quit();
@@ -321,21 +329,18 @@ int main(int argc, char **argv) {
   fmplayer_font_rom_load(&g.font16);
   fmdsp_pacc_set_font16(g.fp, &g.font16);
 
-  SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
-
   SDL_Event e;
   bool end = false;
   while (!end) {
     while (SDL_PollEvent(&e)) {
       switch (e.type) {
-      case SDL_QUIT:
+      case SDL_EVENT_QUIT:
         end = true;
         break;
-      case SDL_DROPFILE:
-        openfile(e.drop.file);
-        SDL_free(e.drop.file);
+      case SDL_EVENT_DROP_FILE:
+        openfile(e.drop.data);
         break;
-      case SDL_KEYDOWN:
+      case SDL_EVENT_KEY_DOWN:
 	handle_keydown(&e.key, &pacc, pc);
       }
     }

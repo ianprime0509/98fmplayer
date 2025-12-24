@@ -3,8 +3,8 @@
     .version = "0.1.14",
     .dependencies = .{
         .sdl = .{
-            .url = "git+https://github.com/allyourcodebase/SDL?ref=main#4bd594b3acb67a950fae81126ee0a3af3395b09c",
-            .hash = "SDL-2.32.10-JToi3_a0EgFQAnsafUA-gNv9ku-yxMoYF9Wjq7HhD5q5",
+            .url = "git+https://github.com/castholm/SDL?ref=v0.3.3+3.2.28#2cde21ea89c7b67d6e16f7f1e2faaa6f44618ecb",
+            .hash = "sdl-0.3.3+3.2.28-7uIn9MiRfwFhqxnwBi_vCQlKr82YpwkQBVwdz2uy46S1",
             .lazy = true,
         },
     },

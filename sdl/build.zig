@@ -19,13 +19,13 @@ pub fn build(b: *std.Build) void {
     mod.addCMacro("PACC_GL_3", "");
     mod.linkSystemLibrary("gl", .{});
     if (sdl_sys) {
-        mod.linkSystemLibrary("sdl2", .{});
+        mod.linkSystemLibrary("sdl3", .{});
     } else sdl: {
         const sdl_dep = b.lazyDependency("sdl", .{
             .target = target,
             .optimize = optimize,
         }) orelse break :sdl;
-        mod.linkLibrary(sdl_dep.artifact("SDL2"));
+        mod.linkLibrary(sdl_dep.artifact("SDL3"));
     }
     var files: std.ArrayList([]const u8) = .empty;
     files.appendSlice(b.allocator, &.{
@@ -116,9 +116,9 @@ pub fn build(b: *std.Build) void {
         bundle_step.dependOn(&bundle_install_exe.step);
         if (sdl_sys) {
             const bundle_install_sdl_framework = b.addInstallDirectory(.{
-                .source_dir = .{ .cwd_relative = "/Library/Frameworks/SDL2.framework" },
+                .source_dir = .{ .cwd_relative = "/Library/Frameworks/SDL3.framework" },
                 .install_dir = bundle_dir,
-                .install_subdir = "Contents/Frameworks/SDL2.framework",
+                .install_subdir = "Contents/Frameworks/SDL3.framework",
             });
             bundle_step.dependOn(&bundle_install_sdl_framework.step);
         }
