@@ -80,7 +80,8 @@ pub fn build(b: *std.Build) void {
     exe.entry = .disabled;
     exe.wasi_exec_model = .reactor;
     exe.import_memory = true;
-    exe.initial_memory = 64 * 1024 * 1024;
+    // initial_memory and max_memory must match what index.js sets on the memory instance
+    exe.initial_memory = 64 * 1024 * 1024 / 2;
     exe.max_memory = 64 * 1024 * 1024;
     exe.shared_memory = true;
     exe.stack_size = 8 * 1024 * 1024;
