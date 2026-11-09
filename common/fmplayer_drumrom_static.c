@@ -1,5 +1,4 @@
 #include "fmplayer_drumrom_static.h"
-#include "libopna/opnadrum.h"
 
 static struct {
   uint8_t *drum_rom;
@@ -9,7 +8,6 @@ void fmplayer_drum_rom_static_set(uint8_t *drum_rom) {
   g.drum_rom = drum_rom;
 }
 
-bool fmplayer_drum_rom_load(struct opna_drum *drum) {
-  opna_drum_set_rom(drum, g.drum_rom);
-  return true;
+const uint8_t *fmplayer_drum_rom_get(void) {
+  return g.drum_rom;
 }

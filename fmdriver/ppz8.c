@@ -10,7 +10,7 @@ void ppz8_set_mask(struct ppz8 *ppz8, unsigned mask) {
   ppz8->mask = mask & 0xffu;
 }
 
-void ppz8_init(struct ppz8 *ppz8, uint16_t srate, uint16_t mix_volume) {
+void ppz8_init(struct ppz8 *ppz8, uint32_t srate, uint16_t mix_volume) {
   for (int i = 0; i < 2; i++) {
     struct ppz8_pcmbuf *buf = &ppz8->buf[i];
     buf->data = 0;

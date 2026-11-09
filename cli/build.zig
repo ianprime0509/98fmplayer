@@ -12,6 +12,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
         .link_libc = true,
+        .link_libcpp = true,
     });
 
     if (b.systemIntegrationOption("sdl", .{})) {
@@ -28,11 +29,42 @@ pub fn build(b: *std.Build) void {
 
     mod.addCMacro("_POSIX_C_SOURCE", "200809L");
     mod.addIncludePath(b.path(".."));
+
+    const ymfm = b.dependency("ymfm", .{});
+    mod.addIncludePath(ymfm.path("src"));
+    mod.addCSourceFiles(.{
+        .root = ymfm.path("src"),
+        .files = &.{
+            "ymfm_opn.cpp",
+            "ymfm_adpcm.cpp",
+            "ymfm_ssg.cpp",
+            "ymfm_misc.cpp",
+        },
+        .flags = &.{
+            "-std=c++23",
+            "-Wno-c++11-narrowing",
+            "-fno-sanitize=shift",
+        },
+    });
+
+    mod.addCSourceFiles(.{
+        .root = b.path(".."),
+        .files = &.{
+            "common/fmplayer_backend_ymfm.cpp",
+        },
+        .flags = &.{
+            "-std=c++23",
+            "-Wno-c++11-narrowing",
+            "-fno-sanitize=shift",
+        },
+    });
+
     var files: std.ArrayList([]const u8) = .empty;
     files.appendSlice(b.allocator, &.{
         "cli/main.c",
         "common/fmplayer_file.c",
         "common/fmplayer_file_unix.c",
+        "common/fmplayer_backend_libopna.c",
         "common/fmplayer_work_opna.c",
         "common/fmplayer_drumrom_unix.c",
         "libopna/opnaadpcm.c",
@@ -85,6 +117,7 @@ fn libpmdmc(
         .target = target,
         .optimize = optimize,
         .link_libc = true,
+        .link_libcpp = true,
     });
     mod.addCMacro("lang", b.fmt("{}", .{256 * 'e' + 'n'}));
     mod.addCSourceFiles(.{

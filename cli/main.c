@@ -17,13 +17,13 @@
 #include <SDL3/SDL.h>
 #include <mc.h>
 
+#include "common/fmplayer_backend.h"
 #include "common/fmplayer_common.h"
 #include "common/fmplayer_file.h"
-#include "libopna/opna.h"
-#include "libopna/opnatimer.h"
+#include "fmdriver/fmdriver.h"
+#include "fmdriver/ppz8.h"
 
 enum {
-  SRATE = 55467,
   CHANNELS = 2,
   BLOCK_FRAMES = 1024,
 };
@@ -40,19 +40,22 @@ static const char *usage =
   "Options:\n"
   "  -h, --help           show help\n"
   "  -F, --no-fade        do not fade out at end\n"
+  "  -b, --backend=NAME   FM chip backend: libopna (default) or ymfm\n"
   "  -l, --loops=LOOPS    play song LOOPS times (default: 1)\n"
   "  -o, --output=OUTPUT  write output in WAV format to OUTPUT\n";
 
 static const struct option options[] = {
   { .name = "help",       .has_arg = no_argument,       .val = 'h' },
   { .name = "no-fade",    .has_arg = no_argument,       .val = 'F' },
+  { .name = "backend",    .has_arg = required_argument, .val = 'b' },
   { .name = "loops",      .has_arg = required_argument, .val = 'l' },
   { .name = "output",     .has_arg = required_argument, .val = 'o' },
   {},
 };
 
 struct mix_context {
-  struct opna_timer *timer;
+  const struct fmplayer_backend *backend;
+  void *storage;
   struct fmdriver_work *work;
   uint64_t volume;
   uint8_t loops;
@@ -62,7 +65,7 @@ struct mix_context {
 
 static bool mix_audio(int16_t *out, size_t frames, struct mix_context *ctx) {
   memset(out, 0, CHANNELS * sizeof(int16_t) * frames);
-  opna_timer_mix(ctx->timer, out, frames);
+  ctx->backend->mix(ctx->storage, out, frames);
   if (ctx->fadeout_enabled && ctx->work->loop_cnt >= ctx->loops) {
     for (unsigned long i = 0; i < frames; i++) {
       int volume = ctx->volume >> 16;
@@ -284,7 +287,7 @@ static int play(struct mix_context *ctx) {
   }
   SDL_AudioStream *stream = SDL_OpenAudioDeviceStream(
     SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK,
-    &(SDL_AudioSpec){ .format = SDL_AUDIO_S16, .channels = CHANNELS, .freq = SRATE },
+    &(SDL_AudioSpec){ .format = SDL_AUDIO_S16, .channels = CHANNELS, .freq = (int)ctx->backend->sample_rate },
     audiocb,
     ctx);
   if (!stream) {
@@ -414,12 +417,12 @@ static int save(const char *output, struct mix_context *ctx) {
     perror(write_err);
     return 1;
   }
-  w32le(buf, SRATE);
+  w32le(buf, ctx->backend->sample_rate);
   if (fwrite(buf, 1, 4, file) < 4) {
     perror(write_err);
     return 1;
   }
-  uint32_t bytes_per_second = CHANNELS * sizeof(int16_t) * SRATE;
+  uint32_t bytes_per_second = CHANNELS * sizeof(int16_t) * ctx->backend->sample_rate;
   w32le(buf, bytes_per_second);
   if (fwrite(buf, 1, 4, file) < 4) {
     perror(write_err);
@@ -466,15 +469,26 @@ int main(int argc, char **argv) {
   bool fade = true;
   int loops = 1;
   const char *output = 0;
+  const struct fmplayer_backend *backend = &fmplayer_backend_libopna;
 
   int optchar;
-  while ((optchar = getopt_long(argc, argv, "hFl:o:", options, 0)) != -1) {
+  while ((optchar = getopt_long(argc, argv, "hFb:l:o:", options, 0)) != -1) {
     switch (optchar) {
     case 'h':
       fprintf(stderr, usage, argv[0]);
       return 0;
     case 'F':
       fade = false;
+      break;
+    case 'b':
+      if (strcmp(optarg, "libopna") == 0) {
+        backend = &fmplayer_backend_libopna;
+      } else if (strcmp(optarg, "ymfm") == 0) {
+        backend = &fmplayer_backend_ymfm;
+      } else {
+        fprintf(stderr, "unknown backend: %s\n", optarg);
+        return 1;
+      }
       break;
     case 'l':
       loops = atoi(optarg);
@@ -505,23 +519,18 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  struct opna opna = {0};
-  struct opna_timer timer = {0};
+  struct fmplayer_backend_storage storage;
   struct ppz8 ppz8 = {0};
   struct fmdriver_work work = {0};
-  uint8_t adpcm_ram[OPNA_ADPCM_RAM_SIZE];
-  fmplayer_init_work_opna(&work, &ppz8, &opna, &timer, adpcm_ram);
-  opna_ssg_set_mix(&opna.ssg, 0x10000);
-  opna_ssg_set_ymf288(&opna.ssg, &opna.resampler, false);
-  ppz8_set_interpolation(&ppz8, PPZ8_INTERP_SINC);
-  opna_fm_set_hires_sin(&opna.fm, false);
-  opna_fm_set_hires_env(&opna.fm, false);
+  uint8_t adpcm_ram[FMPLAYER_ADPCM_RAM_SIZE];
+  backend->init(storage.storage, &ppz8, &work, adpcm_ram);
   fmplayer_file_load(&work, fmfile, loops);
 
   print_comments(&work);
 
   struct mix_context ctx = {
-    .timer = &timer,
+    .backend = backend,
+    .storage = storage.storage,
     .work = &work,
     .volume = VOLUME_INIT,
     .loops = loops,

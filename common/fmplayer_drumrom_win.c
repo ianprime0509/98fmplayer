@@ -1,11 +1,10 @@
 #include "fmplayer_drumrom.h"
-#include "libopna/opnadrum.h"
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <shlwapi.h>
 #include <wchar.h>
 static struct {
-  char drum_rom[OPNA_ROM_SIZE];
+  char drum_rom[FMPLAYER_DRUM_ROM_SIZE];
   bool loaded;
 } g;
 
@@ -24,10 +23,10 @@ static void loadrom(void) {
                             0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
   if (file == INVALID_HANDLE_VALUE) goto err;
   DWORD filesize = GetFileSize(file, 0);
-  if (filesize != OPNA_ROM_SIZE) goto err;
+  if (filesize != FMPLAYER_DRUM_ROM_SIZE) goto err;
   DWORD readbytes;
-  if (!ReadFile(file, g.drum_rom, OPNA_ROM_SIZE, &readbytes, 0)
-      || readbytes != OPNA_ROM_SIZE) goto err;
+  if (!ReadFile(file, g.drum_rom, FMPLAYER_DRUM_ROM_SIZE, &readbytes, 0)
+      || readbytes != FMPLAYER_DRUM_ROM_SIZE) goto err;
   CloseHandle(file);
   g.loaded = true;
   return;
@@ -37,12 +36,9 @@ err:
 }
 
 
-bool fmplayer_drum_rom_load(struct opna_drum *drum) {
+const uint8_t *fmplayer_drum_rom_get(void) {
   if (!g.loaded) loadrom();
-  if (g.loaded) {
-    opna_drum_set_rom(drum, g.drum_rom);
-  }
-  return g.loaded;
+  return g.loaded ? (const uint8_t *)g.drum_rom : 0;
 }
 
 bool fmplayer_drum_loaded(void) {

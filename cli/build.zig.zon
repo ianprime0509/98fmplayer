@@ -14,5 +14,9 @@
             .hash = "sdl-0.6.1+3.4.20-SDL--rskqQH3W9l4AJX-kdZ93M9XuhsqLrUsd2fnUE_X",
             .lazy = true,
         },
+        .ymfm = .{
+            .url = "git+https://github.com/aaronsgiles/ymfm?ref=main#81aec25ccbb98f4873a255f7551ac4dadac59b4a",
+            .hash = "N-V-__8AAGFyCQCSC_U7BgEhVFWA7dgEc677bkHg1scaVCIn",
+        },
     },
 }

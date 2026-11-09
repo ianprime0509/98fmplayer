@@ -49,14 +49,14 @@ struct ppz8_channel {
 struct ppz8 {
   struct ppz8_pcmbuf buf[2];
   struct ppz8_channel channel[8];
-  uint16_t srate;
+  uint32_t srate;
   uint8_t totalvol;
   uint16_t mix_volume;
   unsigned mask;
   enum ppz8_interp interp;
 };
 
-void ppz8_init(struct ppz8 *ppz8, uint16_t srate, uint16_t mix_volume);
+void ppz8_init(struct ppz8 *ppz8, uint32_t srate, uint16_t mix_volume);
 void ppz8_mix(struct ppz8 *ppz8, int16_t *buf, unsigned samples);
 bool ppz8_pvi_load(struct ppz8 *ppz8, uint8_t buf,
                    const uint8_t *pvidata, uint32_t pvidatalen,

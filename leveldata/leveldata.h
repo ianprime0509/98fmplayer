@@ -2,6 +2,7 @@
 #define MYON_LEVELDATA_H_INCLUDED
 
 #include <stdatomic.h>
+#include <string.h>
 
 struct leveldata {
   atomic_flag flag;
@@ -25,7 +26,7 @@ static inline void leveldata_update(struct leveldata *data, unsigned level) {
 }
 
 static inline void leveldata_init(struct leveldata *data) {
-  *data = (struct leveldata) {0};
+  memset(data, 0, sizeof(*data));
   atomic_flag_clear_explicit(&data->flag, memory_order_relaxed);
 }
 

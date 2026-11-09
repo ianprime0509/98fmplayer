@@ -1,8 +1,9 @@
 #include "fmplayer_common.h"
 #include "fmplayer_drumrom.h"
+#include "libopna/opna.h"
+#include "libopna/opnadrum.h"
 #include "fmdriver/fmdriver.h"
 #include "fmdriver/ppz8.h"
-#include "libopna/opna.h"
 #include "libopna/opnatimer.h"
 #include <string.h>
 
@@ -48,7 +49,7 @@ void fmplayer_init_work_opna(
   void *adpcm_ram
 ) {
   opna_reset(opna);
-  fmplayer_drum_rom_load(&opna->drum);
+  opna_drum_set_rom(&opna->drum, (void *)fmplayer_drum_rom_get());
   opna_adpcm_set_ram_256k(&opna->adpcm, adpcm_ram);
   opna_timer_reset(timer, opna);
   ppz8_init(ppz8, SRATE, PPZ8MIX);
